@@ -215,7 +215,7 @@ public:
 				case Escape:
 					get_out();
 				}
-			if (tank.get_fuel_level() == 0)stop();		
+			if (tank.get_fuel_level() == 0)stop();
 		} while (key!=Escape);
 	}
 	void engine_idle()
@@ -232,6 +232,11 @@ public:
 			system("CLS"); 
 			cout << "Fuel level:\t" << tank.get_fuel_level() << " liters\n";
 			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			if (tank.get_fuel_level() <= 5)
+			{
+				cout << "LOW FUEL\t";
+				//std::this_thread::sleep_for(1s);
+			}
 			std::this_thread::sleep_for(1s);
 		}
 
