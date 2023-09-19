@@ -235,7 +235,6 @@ public:
 			if (tank.get_fuel_level() <= 5)
 			{
 				cout << "LOW FUEL\t";
-				//std::this_thread::sleep_for(1s);
 			}
 			std::this_thread::sleep_for(1s);
 		}
