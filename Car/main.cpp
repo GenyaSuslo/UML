@@ -1,6 +1,7 @@
 ﻿#include<iostream>
 #include<conio.h>
 #include<thread>
+#include<Windows.h>
 using namespace std;
 using namespace std::chrono_literals;
 
@@ -126,11 +127,13 @@ class Car
 	Tank tank;
 	int speed;
 	const int MAX_SPEED;
+	int acceleration;
 	bool driver_inside;
 	struct Threads
 	{
 		std::thread panel_thread;
 		std::thread engine_idle_thread;
+		std::thread free_wheeling_thread;
 	}threads;
 public:
 	int get_speed()const
@@ -141,7 +144,7 @@ public:
 	{
 		return MAX_SPEED;
 	}
-	Car(double consumption, int volume, int max_speed):engine(consumption), tank(volume),
+	Car(double consumption, int volume, int max_speed,int acceleration=10):engine(consumption), tank(volume),
 		MAX_SPEED
 		(
 			max_speed<MAX_SPEED_LOWER_LEVEL ? MAX_SPEED_LOWER_LEVEL :
@@ -150,6 +153,8 @@ public:
 		)
 	{
 		driver_inside = false;
+		this->acceleration = acceleration;
+		this->speed = 0;
 		cout << "Your car is ready to go " << this << endl;
 	}
 	~Car()
@@ -212,7 +217,16 @@ public:
 					if (engine.started())stop();
 					else start();
 					break;
+				case'W':case'w':
+					accelerate();
+					std::this_thread::sleep_for(1s);
+					break;
+				case'S':case's':
+					slow_down();
+					std::this_thread::sleep_for(1s);
+					break;
 				case Escape:
+					stop();
 					get_out();
 				}
 			if (tank.get_fuel_level() == 0)stop();
@@ -223,6 +237,33 @@ public:
 		while (engine.started() && tank.give_fuel(engine.get_consumption_per_second()))
 			std::this_thread::sleep_for(1s);
 	}
+	void free_wheeling()
+	{
+		while (--speed)
+		{
+			std::this_thread::sleep_for(1s);
+		}
+	}
+	void accelerate()
+	{
+		if(engine.started()&&driver_inside)
+		{
+			speed += acceleration;
+			if (speed > MAX_SPEED)speed = MAX_SPEED;
+			if (!threads.free_wheeling_thread.joinable())threads.free_wheeling_thread = std::thread(&Car::free_wheeling, this);
+			//std::this_thread::sleep_for(1s);
+		}
+	}
+	void slow_down()
+	{
+		if(engine.started() && driver_inside)
+		{
+			speed -= acceleration;
+			if (speed < 0)speed = 0;
+			if (threads.free_wheeling_thread.joinable())threads.free_wheeling_thread.join();
+			//std::this_thread::sleep_for(1s);
+		}
+	}
 	void panel()const
 	{
 		
@@ -230,13 +271,18 @@ public:
 		{	
 			
 			system("CLS"); 
-			cout << "Fuel level:\t" << tank.get_fuel_level() << " liters\n";
-			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			cout << "Fuel level:\t" << tank.get_fuel_level() << " liters\t";
 			if (tank.get_fuel_level() <= 5)
 			{
-				cout << "LOW FUEL\t";
+				HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+				SetConsoleTextAttribute(hConsole, 0xCE);
+				cout << "LOW FUEL";
+				SetConsoleTextAttribute(hConsole, 0x07);
 			}
-			std::this_thread::sleep_for(1s);
+			cout << endl;
+			cout << "Engine is " << (engine.started() ? "started" : "stopped") << endl;
+			cout << "Speed:\t" << speed << "km/h\n";
+			std::this_thread::sleep_for(100ms);
 		}
 
 	}
